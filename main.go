@@ -1,29 +1,24 @@
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
 
-func Sqrt(x float64) float64 {
-	switch {
-	case x == 0 || x == 1:
-		return x
-	case x < 0:
-		return 0
-	}
-	z := x
-	t := 0
-	for {
-		z -= (z*z - x) / (2 * z)
-		if z*z == x || t == 100 {
-			break
-		}
-		t++
-	}
+type IPAddr [4]byte
 
-	return z
+// TODO: Add a "String() string" method to IPAddr.
+func (i IPAddr) String() string {
+	//s :=""
+	//for p:=0; p<len(i);i++{
+	//	s+=i[p]
+	//}
+	return fmt.Sprintf("%v.%v.%v.%v", i[0], i[1], i[2], i[3])
 }
 
 func main() {
-	fmt.Println(Sqrt(4))
+	hosts := map[string]IPAddr{
+		"loopback":  {127, 0, 0, 1},
+		"googleDNS": {8, 8, 8, 8},
+	}
+	for name, ip := range hosts {
+		fmt.Printf("%v: %v\n", name, ip)
+	}
 }
