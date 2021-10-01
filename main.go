@@ -1,24 +1,52 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
 
-type IPAddr [4]byte
+	"golang.org/x/tour/tree"
+)
 
-// TODO: Add a "String() string" method to IPAddr.
-func (i IPAddr) String() string {
-	//s :=""
-	//for p:=0; p<len(i);i++{
-	//	s+=i[p]
-	//}
-	return fmt.Sprintf("%v.%v.%v.%v", i[0], i[1], i[2], i[3])
+// Walk walks the tree t sending all values
+// from the tree to the channel ch.
+func Walk(t *tree.Tree, ch chan int) {
+	if t == nil {
+		return
+	}
+	Walk(t.Left, ch)
+	ch <- t.Value
+	Walk(t.Right, ch)
+}
+
+// Same determines whether the trees
+// t1 and t2 contain the same values.
+func Same(t1, t2 *tree.Tree) bool {
+	ch1 := make(chan int)
+	ch2 := make(chan int)
+	go Walk(t1, ch1)
+	go Walk(t2, ch2)
+	for i := 0; i < 10; i++ {
+		v1 := <-ch1
+		v2 := <-ch2
+		if v1 != v2 {
+			return false
+		}
+
+	}
+
+	return true
 }
 
 func main() {
-	hosts := map[string]IPAddr{
-		"loopback":  {127, 0, 0, 1},
-		"googleDNS": {8, 8, 8, 8},
+	ch := make(chan int)
+	go Walk(tree.New(1), ch)
+	for i := 0; i < 10; i++ {
+		v := <-ch
+		fmt.Println(v)
 	}
-	for name, ip := range hosts {
-		fmt.Printf("%v: %v\n", name, ip)
-	}
+	fmt.Println(Same(tree.New(1), tree.New(2)))
+	fmt.Println(Same(tree.New(1), tree.New(1)))
+	fmt.Println(Same(tree.New(2), tree.New(1)))
+	//for v:=range ch {
+	//fmt.Println(v)
+	//}
 }
