@@ -2,51 +2,26 @@ package main
 
 import (
 	"fmt"
-
-	"golang.org/x/tour/tree"
+	"math"
+	"net/http"
+	"time"
 )
 
-// Walk walks the tree t sending all values
-// from the tree to the channel ch.
-func Walk(t *tree.Tree, ch chan int) {
-	if t == nil {
-		return
-	}
-	Walk(t.Left, ch)
-	ch <- t.Value
-	Walk(t.Right, ch)
+type User struct {
+	Name           string
+	Kg, Hight, Imt float64
 }
 
-// Same determines whether the trees
-// t1 and t2 contain the same values.
-func Same(t1, t2 *tree.Tree) bool {
-	ch1 := make(chan int)
-	ch2 := make(chan int)
-	go Walk(t1, ch1)
-	go Walk(t2, ch2)
-	for i := 0; i < 10; i++ {
-		v1 := <-ch1
-		v2 := <-ch2
-		if v1 != v2 {
-			return false
-		}
+var da = User{"Dauzhan", 60, 1.8, 0}
 
-	}
+func home(page http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(page, "%v have IMT %v", da.Name, da.Imt)
+	fmt.Fprintln(page, "")
 
-	return true
 }
-
 func main() {
-	ch := make(chan int)
-	go Walk(tree.New(1), ch)
-	for i := 0; i < 10; i++ {
-		v := <-ch
-		fmt.Println(v)
-	}
-	fmt.Println(Same(tree.New(1), tree.New(2)))
-	fmt.Println(Same(tree.New(1), tree.New(1)))
-	fmt.Println(Same(tree.New(2), tree.New(1)))
-	//for v:=range ch {
-	//fmt.Println(v)
-	//}
+	da.Imt = da.Kg / math.Pow(da.Hight, 2)
+	time.Sleep(1 * time.Second)
+	http.HandleFunc("/", home)
+	http.ListenAndServe(":9000", nil)
 }
