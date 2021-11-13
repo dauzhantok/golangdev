@@ -4,16 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
+	"github.com/go-ozzo/ozzo-validation/v4"
 	"gomidka/internal/models"
 	"gomidka/internal/store"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
-
-	"github.com/go-chi/chi"
-	"github.com/go-chi/render"
 )
 
 type Server struct {
@@ -34,7 +33,97 @@ func NewServer(ctx context.Context, address string, store store.Store) *Server {
 		Address: address,
 	}
 }
+func (s *Server) basicHandler() chi.Router {
+	r := chi.NewRouter()
 
+	r.Post("/categories", func(w http.ResponseWriter, r *http.Request) {
+		category := new(models.Category)
+		if err := json.NewDecoder(r.Body).Decode(category); err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		if err := s.store.Categories().Create(r.Context(), category); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "DB err: %v", err)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+	})
+	r.Get("/categories", func(w http.ResponseWriter, r *http.Request) {
+		categories, err := s.store.Categories().All(r.Context())
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "DB err: %v", err)
+			return
+		}
+
+		render.JSON(w, r, categories)
+	})
+	r.Get("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		category, err := s.store.Categories().ByID(r.Context(), id)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "DB err: %v", err)
+			return
+		}
+
+		render.JSON(w, r, category)
+	})
+	r.Put("/categories", func(w http.ResponseWriter, r *http.Request) {
+		category := new(models.Category)
+		if err := json.NewDecoder(r.Body).Decode(category); err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		err := validation.ValidateStruct(
+			category,
+			validation.Field(&category.ID, validation.Required),
+			validation.Field(&category.Name, validation.Required),
+		)
+		if err != nil {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		if err := s.store.Categories().Update(r.Context(), category); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "DB err: %v", err)
+			return
+		}
+	})
+	r.Delete("/categories/{id}", func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, "id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprintf(w, "Unknown err: %v", err)
+			return
+		}
+
+		if err := s.store.Categories().Delete(r.Context(), id); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "DB err: %v", err)
+			return
+		}
+	})
+
+	return r
+}
+/*
 func (s *Server) basicHandler() chi.Router {
 	r := chi.NewRouter()
 
@@ -53,10 +142,10 @@ func (s *Server) basicHandler() chi.Router {
 			return
 		}
 
-		s.store.Create(r.Context(), bread)
+		s.store.Breads().Create(r.Context(), bread)
 	})
 	r.Get("/breads", func(w http.ResponseWriter, r *http.Request) {
-		breads, err := s.store.All(r.Context())
+		breads, err := s.store.Breads().All(r.Context())
 		if err != nil {
 			fmt.Fprintf(w, "Unknown err: %v", err)
 			return
@@ -64,6 +153,8 @@ func (s *Server) basicHandler() chi.Router {
 
 		render.JSON(w, r, breads)
 	})
+
+
 	r.Get("/breads/{id}", func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
 		id, err := strconv.Atoi(idStr)
@@ -72,7 +163,7 @@ func (s *Server) basicHandler() chi.Router {
 			return
 		}
 
-		bread, err := s.store.ByID(r.Context(), id)
+		bread, err := s.store.Breads().ByID(r.Context(), id)
 		if err != nil {
 			fmt.Fprintf(w, "Unknown err: %v", err)
 			return
@@ -87,7 +178,7 @@ func (s *Server) basicHandler() chi.Router {
 			return
 		}
 
-		s.store.Update(r.Context(), bread)
+		s.store.Breads().Update(r.Context(), bread)
 	})
 	r.Delete("/breads/{id}", func(w http.ResponseWriter, r *http.Request) {
 		idStr := chi.URLParam(r, "id")
@@ -97,12 +188,12 @@ func (s *Server) basicHandler() chi.Router {
 			return
 		}
 
-		s.store.Delete(r.Context(), id)
+		s.store.Breads().Delete(r.Context(), id)
 	})
 
 	return r
 }
-
+*/
 func (s *Server) Run() error {
 
 	srv := &http.Server{

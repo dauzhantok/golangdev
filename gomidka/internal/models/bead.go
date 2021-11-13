@@ -1,13 +1,18 @@
 package models
 
-type Bread struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+type Category struct {
+	ID   int    `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
+}
 
-	Gluten          bool   `json:"Gluten"`          // yes
-	Sugar           int    `json:"Sugar"`           // 50
-	Expiration_date int    `json:"Expiration_date"` //3 days
-	Culture         string `json:"Culture"`         //Russ or French ...
-	Type            string `json:"Type"`            // Baget, Kerpich ...
-	Filling         string `json:"Filling"`         // Chocolate , froot
+type Bread struct {
+	ID   int    `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
+
+	Gluten          bool   `json:"gluten" db:"gluten"`          // yes
+	Sugar           int    `json:"sugar" db:"sugar"`           // 1-10
+	Price           int    `json:"price" db:"price"`           //2$
+	Culture         string `json:"culture" db:"culture"`         //Rus or French ...
+	CategoryId      string `json:"category_id" db:"category_id"`            // Baget, Kerpich ...
+	Filling         string `json:"filling" db:"filling"`         // izum ....
 }
