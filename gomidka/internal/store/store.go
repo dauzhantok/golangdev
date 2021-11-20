@@ -14,14 +14,14 @@ type Store interface {
 }
 type BreadsRepository interface {
 	Create(ctx context.Context, bread *models.Bread) error
-	All(ctx context.Context) ([]*models.Bread, error)
+	All(ctx context.Context, filter *models.BreadsFilter) ([]*models.Bread, error)
 	ByID(ctx context.Context, id int) (*models.Bread, error)
 	Update(ctx context.Context, bread *models.Bread) error
 	Delete(ctx context.Context, id int) error
 }
 type CategoriesRepository interface {
 	Create(ctx context.Context, bread *models.Category) error
-	All(ctx context.Context) ([]*models.Category, error)
+	All(ctx context.Context,filter *models.CategoriesFilter) ([]*models.Category, error)
 	ByID(ctx context.Context, id int) (*models.Category, error)
 	Update(ctx context.Context, bread *models.Category) error
 	Delete(ctx context.Context, id int) error
