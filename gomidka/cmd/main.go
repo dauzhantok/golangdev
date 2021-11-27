@@ -1,25 +1,59 @@
 package main
 
 import (
-	"context"
-	"gomidka/internal/http"
-	"gomidka/internal/store/postgres"
-
+"context"
+lru "github.com/hashicorp/golang-lru"
+"gomidka/internal/http"
+"gomidka/internal/message_broker/kafka"
+"gomidka/internal/store/postgres"
+"log"
+"os"
+"os/signal"
+"syscall"
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	go CatchTermination(cancel)
 
-	urlExample := "postgres://postgres:Dauzhan02@localhost:5432/bread"
+	dbURL := "postgres://postgres:Dauzhan02@localhost:5432/bread"
 	store := postgres.NewDB()
-	if err := store.Connect(urlExample); err != nil {
+	if err := store.Connect(dbURL); err != nil {
 		panic(err)
 	}
 	defer store.Close()
 
-	srv := http.NewServer(context.Background(), ":8080", store)
-	if err := srv.Run(); err != nil {
+	cache, err := lru.New2Q(6)
+	if err != nil {
 		panic(err)
 	}
 
+	brokers := []string{"localhost:29092"}
+	broker := kafka.NewBroker(brokers, cache, "peer1")
+	if err := broker.Connect(ctx); err != nil {
+		panic(err)
+	}
+	defer broker.Close()
+
+	srv := http.NewServer(
+		ctx,
+		http.WithAddress(":8081"),
+		http.WithStore(store),
+		http.WithCache(cache),
+		http.WithBroker(broker),
+	)
+	if err := srv.Run(); err != nil {
+		log.Println(err)
+	}
+
 	srv.WaitForGracefulTermination()
+}
+
+func CatchTermination(cancel context.CancelFunc) {
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	log.Print("[WARN] caught termination signal")
+	cancel()
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	lru "github.com/hashicorp/golang-lru"
+	"gomidka/internal/message_broker"
 	"gomidka/internal/models"
 	"gomidka/internal/store"
 	"net/http"
@@ -15,12 +16,14 @@ import (
 
 type BreadResource struct {
 	store store.Store
+	broker message_broker.MessageBroker
 	cache *lru.TwoQueueCache
 }
 
-func NewBreadResource(store store.Store, cache *lru.TwoQueueCache) *BreadResource {
+func NewBreadResource(store store.Store, broker message_broker.MessageBroker, cache *lru.TwoQueueCache) *BreadResource {
 	return &BreadResource{
 		store: store,
+		broker: broker,
 		cache: cache,
 	}
 }
@@ -136,7 +139,7 @@ func (cr *BreadResource) UpdateBread(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cr.cache.Remove(bread.ID)
+	cr.broker.Cache().Remove(bread.ID)
 }
 
 func (cr *BreadResource) DeleteBread(w http.ResponseWriter, r *http.Request) {
@@ -154,5 +157,5 @@ func (cr *BreadResource) DeleteBread(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cr.cache.Remove(id)
+	cr.broker.Cache().Remove(id)
 }

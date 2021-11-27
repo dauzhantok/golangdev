@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	lru "github.com/hashicorp/golang-lru"
+	"gomidka/internal/message_broker"
 	"gomidka/internal/models"
 	"gomidka/internal/store"
 	"net/http"
@@ -14,14 +15,16 @@ import (
 )
 
 type CategoryResource struct {
-	store store.Store
-	cache *lru.TwoQueueCache
+	store  store.Store
+	broker message_broker.MessageBroker
+	cache  *lru.TwoQueueCache
 }
 
-func NewCategoryResource(store store.Store, cache *lru.TwoQueueCache) *CategoryResource {
+func NewCategoryResource(store store.Store, broker message_broker.MessageBroker, cache *lru.TwoQueueCache) *CategoryResource {
 	return &CategoryResource{
-		store: store,
-		cache: cache,
+		store:  store,
+		broker: broker,
+		cache:  cache,
 	}
 }
 
@@ -52,7 +55,7 @@ func (cr *CategoryResource) CreateCategory(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Правильно пройтись по всем буквам и всем словам
-	cr.cache.Purge() // в рамках учебного проекта полностью чистим кэш после создания новой категории
+	cr.broker.Cache().Purge() // в рамках учебного проекта полностью чистим кэш после создания новой категории
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -136,7 +139,7 @@ func (cr *CategoryResource) UpdateCategory(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	cr.cache.Remove(category.ID)
+	cr.broker.Cache().Remove(category.ID)
 }
 
 func (cr *CategoryResource) DeleteCategory(w http.ResponseWriter, r *http.Request) {
@@ -154,5 +157,5 @@ func (cr *CategoryResource) DeleteCategory(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	cr.cache.Remove(id)
+	cr.broker.Cache().Remove(id)
 }

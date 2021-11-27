@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-chi/chi"
 	lru "github.com/hashicorp/golang-lru"
+	"gomidka/internal/message_broker"
 	"gomidka/internal/store"
 	"log"
 	"net/http"
@@ -15,6 +16,7 @@ type Server struct {
 	idleConnsCh chan struct{}
 	store       store.Store
 	cache       *lru.TwoQueueCache
+	broker      message_broker.MessageBroker
 
 	Address string
 }
@@ -31,21 +33,19 @@ func NewServer(ctx context.Context, opts ...ServerOption) *Server {
 
 	return srv
 }
+
 func (s *Server) basicHandler() chi.Router {
 	r := chi.NewRouter()
 
-	categoriesResource := NewCategoryResource(s.store, s.cache)
+	categoriesResource := NewCategoryResource(s.store, s.broker, s.cache)
 	r.Mount("/categories", categoriesResource.Routes())
-	breadsResource := NewBreadResource(s.store, s.cache)
+	breadsResource := NewBreadResource(s.store, s.broker, s.cache)
 	r.Mount("/breads", breadsResource.Routes())
 
 	return r
-	//BREAD//BREAD//BREAD//BREAD//BREAD
-
 }
 
 func (s *Server) Run() error {
-
 	srv := &http.Server{
 		Addr:         s.Address,
 		Handler:      s.basicHandler(),
